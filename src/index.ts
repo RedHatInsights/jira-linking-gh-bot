@@ -4,6 +4,17 @@ import { Context, Probot } from 'probot';
 
 const jiraRegex = /VULN-[0-9]+/g;
 
+const checkComments = async (commentsUrl: string): Promise<number | undefined> => {
+    const response = await fetch(commentsUrl);
+    const data = await response.json();
+    for (const comment of data.slice().reverse()) {
+        if (comment.user.id === 88086763) {
+            return comment.id;
+        }
+    }
+    return undefined;
+};
+
 const processPR = async (context: WebhookEvent<EventPayloads.WebhookPayloadPullRequest> & Omit<Context<any>, keyof WebhookEvent<any>>) => {
     const missingJiraIDs = new Set<string>();
     const jiraIds = new Set<string>();
@@ -33,17 +44,24 @@ const processPR = async (context: WebhookEvent<EventPayloads.WebhookPayloadPullR
             responseBody = responseBody + 'https://issues.redhat.com/browse/' + jiraId + '\n';
         });
     }
-    const comment = context.issue({ body: responseBody });
-    await context.octokit.issues.createComment(comment);
+
+    const commentId = await checkComments(context.payload.pull_request.comments_url);
+    if (commentId !== undefined) {
+        await context.octokit.issues.updateComment({
+            body: responseBody,
+            owner: context.payload.repository.owner.login,
+            repo: context.payload.repository.name,
+            comment_id: commentId,
+        });
+        console.log('updated comment at: ', context.payload.pull_request.html_url)
+    } else {
+        const comment = context.issue({ body: responseBody });
+        await context.octokit.issues.createComment(comment);
+        console.log('created comment at: ', context.payload.pull_request.html_url)
+    }
 };
 
 export = (app: Probot) => {
-    app.on('issues.opened', async (context) => {
-        const issueComment = context.issue({
-            body: 'Thanks for opening this issue!',
-        });
-        await context.octokit.issues.createComment(issueComment);
-    });
-    app.on('pull_request.synchronize', async (context) => processPR(context));
     app.on('pull_request.opened', async (context) => processPR(context));
+    app.on('pull_request.synchronize', async (context) => processPR(context));
 };
