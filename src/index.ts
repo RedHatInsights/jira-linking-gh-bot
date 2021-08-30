@@ -2,7 +2,7 @@ import { EventPayloads, WebhookEvent } from '@octokit/webhooks';
 import fetch from 'node-fetch';
 import { Context, Probot } from 'probot';
 
-const jiraRegex = /VULN-[0-9]+/g;
+const jiraRegex = /(VULN|SPM|VMAAS)-[0-9]+/g;
 
 const checkComments = async (commentsUrl: string): Promise<number | undefined> => {
     const response = await fetch(commentsUrl);
