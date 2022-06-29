@@ -2,7 +2,7 @@ import { EventPayloads, WebhookEvent } from '@octokit/webhooks';
 import fetch from 'node-fetch';
 import { Context, Probot } from 'probot';
 
-const jiraRegex = /(VULN|SPM|VMAAS)-[0-9]+/g;
+const jiraRegex = process.env.JIRA_REGEXP || /(VULN|SPM|VMAAS|VULN4OS)-[0-9]+/g;
 
 const checkComments = async (commentsUrl: string): Promise<number | undefined> => {
     const response = await fetch(commentsUrl);
@@ -53,11 +53,11 @@ const processPR = async (context: WebhookEvent<EventPayloads.WebhookPayloadPullR
             repo: context.payload.repository.name,
             comment_id: commentId,
         });
-        console.log('updated comment at: ', context.payload.pull_request.html_url)
+        console.log('updated comment at: ', context.payload.pull_request.html_url);
     } else {
         const comment = context.issue({ body: responseBody });
         await context.octokit.issues.createComment(comment);
-        console.log('created comment at: ', context.payload.pull_request.html_url)
+        console.log('created comment at: ', context.payload.pull_request.html_url);
     }
 };
 
