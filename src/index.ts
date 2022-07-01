@@ -18,14 +18,20 @@ const jiraAPI = new JiraApi({
     strictSSL: true,
 });
 
-const checkComments = async (commentsUrl: string): Promise<number | undefined> => {
-    const response = await fetch(commentsUrl);
-    const data = await response.json();
-    for (const comment of data.slice().reverse()) {
-        if (comment.user.id === 88086763) {
+const checkComments = async (
+    context: WebhookEvent<EventPayloads.WebhookPayloadPullRequest> & Omit<Context<any>, keyof WebhookEvent<any>>
+): Promise<number | undefined> => {
+    const comments = await context.octokit.issues.listComments({
+        owner: context.payload.repository.owner.login,
+        repo: context.payload.repository.name,
+        issue_number: context.payload.pull_request.number,
+    });
+    for (const comment of comments.data.reverse()) {
+        if (comment.user?.id === 88086763) {
             return comment.id;
         }
     }
+
     return undefined;
 };
 
@@ -64,7 +70,7 @@ const processPR = async (context: WebhookEvent<EventPayloads.WebhookPayloadPullR
         });
     }
 
-    const commentId = await checkComments(context.payload.pull_request.comments_url);
+    const commentId = await checkComments(context);
     if (commentId !== undefined) {
         await context.octokit.issues.updateComment({
             body: responseBody,

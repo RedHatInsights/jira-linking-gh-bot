@@ -19,7 +19,6 @@
   "dependencies": {
     "@types/jira-client": "^7.1.4",
     "jira-client": "^8.1.0",
-    "node-fetch": "^3.2.6",
     "probot": "^11.0.1"
   },
   "devDependencies": {
