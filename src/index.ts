@@ -1,5 +1,4 @@
 import { EventPayloads, WebhookEvent } from '@octokit/webhooks';
-import fetch from 'node-fetch';
 import { Context, Probot } from 'probot';
 import JiraApi from 'jira-client';
 
@@ -34,18 +33,23 @@ const processPR = async (context: WebhookEvent<EventPayloads.WebhookPayloadPullR
     const missingJiraIDs = new Set<string>();
     const jiraIds = new Set<string>();
 
-    const response = await fetch(context.payload.pull_request.commits_url);
-    const data = await response.json();
-    data.forEach((element: { commit: { message: string }; sha: string }) => {
-        const match = element.commit.message.match(jiraRegex);
+    const response = await context.octokit.pulls.listCommits({
+        owner: context.payload.repository.owner.login,
+        repo: context.payload.repository.name,
+        pull_number: context.payload.pull_request.number,
+    });
+
+    response.data.forEach((commit) => {
+        const match = commit.commit.message.match(jiraRegex);
         if (match === null) {
-            missingJiraIDs.add(element.sha);
+            missingJiraIDs.add(commit.sha);
         } else {
             match.forEach((jiraId) => {
                 jiraIds.add(jiraId);
             });
         }
     });
+
     let responseBody = '';
     if (missingJiraIDs.size > 0) {
         responseBody = responseBody + 'Commits missing Jira IDs:\n';
