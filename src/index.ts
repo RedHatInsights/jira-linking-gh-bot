@@ -95,15 +95,13 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
         return;
     }
 
-    //const repoName = context.payload.repository.name;
-
     let commit;
     const headCommitDetails = await context.octokit.repos.getCommit({
         owner: context.payload.repository.owner.login,
         repo: context.payload.repository.name,
         ref: context.payload.ref,
     });
-    const version = headCommitDetails.data.commit.message;
+    const version = headCommitDetails.data.commit.message.split('\n')[0];
     let ref = headCommitDetails.data.parents[0].sha;
 
     const jiraIds = new Set<string>();
