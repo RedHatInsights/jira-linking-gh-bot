@@ -2,9 +2,11 @@ import { EventPayloads, WebhookEvent } from '@octokit/webhooks';
 import { Context, Probot } from 'probot';
 import JiraApi from 'jira-client';
 
-const jiraRegex = process.env.JIRA_REGEXP || /(VULN|SPM|VMAAS|VULN4OS)-[0-9]+/g;
+const jiraRegex = process.env.JIRA_REGEXP || /(VULN|SPM|VMAAS|VULN4OS|RHINENG)-[0-9]+/g;
 
 const BEAERER = process.env.JIRA_TOKEN;
+
+const componentShort = new Map<string, string>([["vulnerability", "vuln"]]);
 
 if (BEAERER === undefined) {
     console.info('Jira token is missing, skipping version marking in Jira');
@@ -101,7 +103,7 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
         repo: context.payload.repository.name,
         ref: context.payload.ref,
     });
-    const version = headCommitDetails.data.commit.message.split('\n')[0];
+    let version = headCommitDetails.data.commit.message.split('\n')[0];
     let ref = headCommitDetails.data.parents[0].sha;
 
     const jiraIds = new Set<string>();
@@ -134,6 +136,15 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
     const issue = await jiraAPI.findIssue(jiraIds.values().next().value);
     projectId = issue.fields.project.id;
     projectKey = issue.fields.project.key;
+
+    // version prefix based on jira component
+    if (issue.fields.components !== undefined && issue.fields.components.length > 0) {
+        let versionPrefix = issue.fields.components[0].name.toLowerCase()
+        if (componentShort.get(versionPrefix) !== undefined) {
+            versionPrefix = componentShort.get(versionPrefix)
+        }
+        version = `${versionPrefix}_${version}`
+    }
 
     let versionId: number;
     const knownVersions = await jiraAPI.getVersions(projectKey);
