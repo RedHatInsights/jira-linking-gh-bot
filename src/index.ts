@@ -177,9 +177,15 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
         versionId = filteredVersions[0].id;
     }
 
-    jiraIds.forEach((issue) => {
-        jiraAPI.updateIssue(issue, { fields: { fixVersions: [{ id: versionId.toString() }] } });
-    });
+    for (const issue of jiraIds) {
+        const issueResp = await jiraAPI.findIssue(issue);
+        let fixVersions = issueResp.fields.fixVersions;
+        if (fixVersions === undefined) {
+            fixVersions = []
+        }
+        fixVersions.push({ id: versionId.toString() })
+        jiraAPI.updateIssue(issue, { fields: { fixVersions: fixVersions } });
+    }
 };
 
 export default (app: Probot) => {
