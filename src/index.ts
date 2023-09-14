@@ -167,7 +167,7 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
     });
 };
 
-export = (app: Probot) => {
+export default (app: Probot) => {
     app.on('pull_request.opened', async (context) => processPR(context));
     app.on('pull_request.synchronize', async (context) => processPR(context));
     if (BEAERER !== undefined) {
