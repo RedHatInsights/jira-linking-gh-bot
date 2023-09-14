@@ -7,6 +7,13 @@ const jiraRegex = process.env.JIRA_REGEXP || /(VULN|SPM|VMAAS|VULN4OS|RHINENG)-[
 const BEAERER = process.env.JIRA_TOKEN;
 
 const componentShort = new Map<string, string>([["vulnerability", "vuln"]]);
+const repo2prefix = new Map<string, string>([
+    ["vulnerability-engine", "vuln"],
+    ["vuln4shift-backend", "vuln4shift"],
+    ["patchman-engine", "patch"],
+    ["vmaas", "vmaas"],
+    ["vmaas-lib", "vmaas-lib"],
+]);
 
 if (BEAERER === undefined) {
     console.info('Jira token is missing, skipping version marking in Jira');
@@ -126,8 +133,6 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
         }
     } while (commit.data.commit.author?.name !== 'semantic-release');
 
-    console.log(`Version ${version} fixes: `, jiraIds);
-
     if (jiraIds.size === 0) {
         return;
     }
@@ -137,14 +142,24 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
     projectId = issue.fields.project.id;
     projectKey = issue.fields.project.key;
 
+    let versionPrefix;
     // version prefix based on jira component
     if (issue.fields.components !== undefined && issue.fields.components.length > 0) {
-        let versionPrefix = issue.fields.components[0].name.toLowerCase()
+        versionPrefix = issue.fields.components[0].name.toLowerCase();
         if (componentShort.get(versionPrefix) !== undefined) {
-            versionPrefix = componentShort.get(versionPrefix)
+            versionPrefix = componentShort.get(versionPrefix);
         }
-        version = `${versionPrefix}_${version}`
     }
+
+    // override version prefix based on known GH repo
+    if (repo2prefix.get(context.payload.repository.name) !== undefined) {
+        versionPrefix = repo2prefix.get(context.payload.repository.name);
+    }
+
+    if (versionPrefix !== undefined) {
+        version = `${versionPrefix}_${version}`;
+    }
+    console.log(`Version ${version} fixes: `, jiraIds);
 
     let versionId: number;
     const knownVersions = await jiraAPI.getVersions(projectKey);
