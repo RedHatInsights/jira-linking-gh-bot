@@ -14,6 +14,7 @@ const repo2prefix = new Map<string, string>([
     ["vmaas", "vmaas"],
     ["vmaas-lib", "vmaas-lib"],
 ]);
+const allowedAuthors = new Array<string>("semantic-release", "vmaas-bot");
 
 if (BEAERER === undefined) {
     console.info('Jira token is missing, skipping version marking in Jira');
@@ -100,7 +101,7 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
     if (headCommit === null) {
         return;
     }
-    if (headCommit['author']['name'] !== 'semantic-release') {
+    if (!allowedAuthors.includes(headCommit['author']['name'])) {
         return;
     }
 
@@ -131,7 +132,7 @@ const processPush = async (context: WebhookEvent<EventPayloads.WebhookPayloadPus
                 jiraIds.add(jiraId);
             });
         }
-    } while (commit.data.commit.author?.name !== 'semantic-release');
+    } while (!allowedAuthors.includes(String(commit.data.commit.author?.name)))
 
     if (jiraIds.size === 0) {
         return;
