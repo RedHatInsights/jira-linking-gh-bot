@@ -2,7 +2,7 @@ import { EventPayloads, WebhookEvent } from '@octokit/webhooks';
 import { Context, Probot } from 'probot';
 import JiraApi from 'jira-client';
 
-const jiraRegex = process.env.JIRA_REGEXP || /(VULN|SPM|VMAAS|VULN4OS|RHINENG)-[0-9]+/g;
+const jiraRegex = process.env.JIRA_REGEXP || /(VULN|SPM|VMAAS|VULN4OS|RHINENG|CCXDEV)-[0-9]+/g;
 
 const BEAERER = process.env.JIRA_TOKEN;
 
